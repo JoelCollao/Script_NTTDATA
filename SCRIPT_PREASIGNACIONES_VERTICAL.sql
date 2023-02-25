@@ -1,0 +1,80 @@
+--------------- EJEMPLO AGUAS ABAJO ----------------------
+--OBTENER EL ID_PUERTO_ODF a partir de su CODIGO:
+select * from red.PUERTO_ODF where NOMBRE_COMPLETO LIKE 'PG_SMODF01-10-28-38' 
+
+/*
+Escoger el PUERTO_ODF --> COLUMNA --> NOMBRE_COMPLETO
+select * from red.PUERTO_ODF
+PG_SMODF01-10-28-38
+PG_SMODF01-10-28-43
+PG_SMODF01-10-28-44
+PG_SMODF01-10-29-17
+PG_SMODF01-10-29-18
+PG_SMODF01-10-29-19
+*/
+
+--> ID_PUERTO_ODF: 1458865 
+
+--OBTENER EL ID_PUERTO (grafo) a partir del ID_PUERTO_ODF:
+select * from red.puerto where id_equipo=1458874 --(ID_PUERTO_ODF)
+--> ID_PUERTO: 1107947
+
+--CONSULTA AGUAS ABAJO puerto ODF--> divisores del CTO
+SELECT PersonName AS PuertoODF,Cables, Puertos,TipoPuerto,TipoConex, LastNodeID AS IdDivisorCTO, LastTipo
+FROM(
+    SELECT
+        Puerto1.ID_PUERTO AS PersonName,
+        STRING_AGG(Puerto2.ID_PUERTO, '->') WITHIN GROUP (GRAPH PATH) AS Puertos,
+        STRING_AGG(Puerto2.ID_TIPO_EQUIPO, '->') WITHIN GROUP (GRAPH PATH) AS TipoPuerto,
+        STRING_AGG(fi.ID_TIPO_FIBRA, '->') WITHIN GROUP (GRAPH PATH) AS TipoConex,
+        STRING_AGG(fi.ID_TRAMO_CABLE, '->') WITHIN GROUP (GRAPH PATH) AS Cables,
+        LAST_VALUE(Puerto2.ID_TIPO_EQUIPO) WITHIN GROUP (GRAPH PATH) AS LastNode,
+        LAST_VALUE(Puerto2.ID_EQUIPO) WITHIN GROUP (GRAPH PATH) AS LastNodeID,
+        LAST_VALUE(Puerto2.ID_TIPO_PUERTO) WITHIN GROUP (GRAPH PATH) AS LastTipo
+
+    FROM
+        Red.Puerto AS Puerto1,
+        Red.Fibra FOR PATH AS fi,
+        Red.Puerto FOR PATH  AS Puerto2
+    WHERE MATCH(SHORTEST_PATH(Puerto1(-(fi)->Puerto2)+))
+    AND Puerto1.ID_TIPO_EQUIPO = 0 AND Puerto1.ID_PUERTO = 1084680 --ID_PUERTO CORRESPONDIENTE AL PUERTO(GRAFO) ASOCIADO AL PUERTO_ODF Y ID_TIPO_EQUIPO = 0 PARA INDICAR QUE EL NODO INICIAL ES DE TIPO PUERTO_ODF
+) AS Q
+WHERE Q.LastNode = 2 AND LastTipo = 0
+-->IdDivisorCTO: 
+/*166771
+166772
+166768
+166740
+166773
+166774
+166775
+166769*/
+
+
+
+
+--OBTENER LOS ID_TERMINAL(CTO) CORRESPONDIENTES A LOS DIVISORES ENCONTRADOS AGUAS ABAJO
+select * from red.divisor where id_divisor in (
+166771
+,166772
+,166768
+,166740
+,166773
+,166774
+,166775
+,166769)
+
+
+
+--OBTENER LOS homeId(ID_UIP) que están preasignaos a los CTOs aguas abajo:
+Select * from Cartografia.uip where ID_CTO_PREASIGNADA in (
+178488
+,178474
+,178474
+,178487
+,178487
+,178466
+,178473
+,178488
+)
+-->110 homeId

@@ -1,0 +1,37 @@
+@Service
+public class CreateLineIdActivityImpl implements CreateLineIdActivity {
+
+    private Config config;
+
+    @Override
+    public String createLineId(String partyId) {
+        StringBuilder lineIdBuilder = new StringBuilder();
+        lineIdBuilder.append(generateCountryCode(config.getLineIdCountry()));
+        lineIdBuilder.append(".");
+        lineIdBuilder.append(partyId);
+        lineIdBuilder.append(".");
+        lineIdBuilder.append(generateLineIdCode(config.getTimeZone()));
+        return lineIdBuilder.toString();
+    }
+
+    @Override
+    public void setConfig(Config config) {
+        this.config = config;
+    }
+
+    private String generateCountryCode(String countryFilter) {
+        Map<String, String> countries = new HashMap<>();
+        Locale.setDefault(new Locale("en"));
+        for (String iso : Locale.getISOCountries()) {
+            Locale obj = new Locale("", iso);
+            countries.put(obj.getDisplayCountry(), obj.getISO3Country());
+        }
+        return countries.get(countryFilter);
+    }
+
+    public String generateLineIdCode(String timezone) {
+        ZoneId zoneId = ZoneId.of(timezone);
+        Clock clock = Clock.system(zoneId);
+        return String.valueOf(clock.millis());
+    }
+}
